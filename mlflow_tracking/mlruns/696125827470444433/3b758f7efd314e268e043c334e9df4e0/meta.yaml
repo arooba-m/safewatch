@@ -1,0 +1,14 @@
+artifact_uri: file:C:/Users/Admin/Desktop/safewatch/mlflow_tracking/mlruns/696125827470444433/3b758f7efd314e268e043c334e9df4e0/artifacts
+end_time: 1773780041805
+entry_point_name: ''
+experiment_id: '696125827470444433'
+lifecycle_stage: active
+run_id: 3b758f7efd314e268e043c334e9df4e0
+run_name: analysis_014041
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1773780041731
+status: 3
+tags: []
+user_id: Admin

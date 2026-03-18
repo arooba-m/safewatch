@@ -1,0 +1,51 @@
+OSHA STANDARD 1926.100 - HEAD PROTECTION
+
+Requirements:
+Employees working in areas where there is a possible danger of head injury from 
+impact, falling or flying objects must be protected by protective helmets.
+
+Hard hat classes:
+- Class A: General service, limited voltage protection
+- Class B: Utility service, high voltage protection  
+- Class C: Special service, no voltage protection
+
+When required:
+- Construction sites with overhead work
+- Areas where objects might fall from above
+- Work near exposed electrical conductors
+
+Fine for violation: $15,625 per serious violation
+Repeat violation fine: $156,259
+
+---
+
+OSHA STANDARD 1926.102 - EYE AND FACE PROTECTION
+
+Requirements:
+Eye and face protection must be provided when machines or operations present 
+potential eye or face injury from physical, chemical, or radiation agents.
+
+Types required:
+- Safety glasses for flying debris
+- Goggles for chemical splash
+- Face shields for grinding operations
+
+Fine for violation: $15,625 per violation
+
+---
+
+OSHA STANDARD 1910.132 - PERSONAL PROTECTIVE EQUIPMENT GENERAL
+
+Requirements:
+Protective equipment must be provided, used, and maintained in a sanitary 
+and reliable condition wherever it is necessary.
+
+Employer responsibilities:
+- Assess workplace for hazards
+- Select appropriate PPE
+- Train employees on PPE use
+- Enforce PPE compliance
+
+Fine for willful violation: $156,259
+Fine for serious violation: $15,625
+Fine for other than serious: $15,625

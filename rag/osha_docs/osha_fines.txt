@@ -1,0 +1,37 @@
+
+OSHA PENALTY STRUCTURE 2024-2025
+
+SERIOUS VIOLATIONS
+Definition: Substantial probability that death or serious physical harm could result
+Penalty: Up to $15,625 per violation
+
+WILLFUL VIOLATIONS  
+Definition: Employer knowingly disregards OSHA requirements
+Penalty: $11,524 to $156,259 per violation
+
+REPEAT VIOLATIONS
+Definition: Same standard violated within 5 years
+Penalty: Up to $156,259 per violation
+
+OTHER THAN SERIOUS
+Definition: Violation with no direct relationship to safety/health
+Penalty: Up to $15,625 per violation
+
+PPE SPECIFIC FINES:
+- No hard hat on construction site: $15,625 (serious)
+- No safety vest in required area: $15,625 (serious)  
+- No eye protection: $15,625 (serious)
+- No fall protection: $156,259 (willful)
+- Repeat PPE violation: $156,259
+
+REDUCTION FACTORS:
+- Good faith effort: up to 25% reduction
+- Small business: up to 60% reduction
+- History of compliance: up to 10% reduction
+
+OSHA INSPECTION TRIGGERS:
+- Employee complaint
+- Fatality or hospitalization report
+- Referral from other agencies
+- Planned high-hazard industry inspection
+- Follow-up inspection

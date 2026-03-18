@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  safewatch:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./safewatch.db:/app/safewatch.db
+      - ./rag/chroma_db:/app/rag/chroma_db
+      - ./best.pt:/app/best.pt
+    environment:
+      - SECRET_KEY=safewatch-super-secret-2026
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - OLLAMA_MODEL=llama3.2
+    restart: unless-stopped

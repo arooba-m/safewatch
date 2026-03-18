@@ -1,0 +1,36 @@
+OSHA CONSTRUCTION SAFETY STANDARDS
+
+STANDARD 1926.20 - GENERAL SAFETY AND HEALTH PROVISIONS
+
+All construction work must be performed in a manner that does not expose 
+workers to safety or health hazards.
+
+Site Safety Requirements:
+- Safety vests required in high visibility areas
+- Hard hats required at all construction sites
+- Safety boots required where there is danger of foot injuries
+- Gloves required when handling sharp materials
+
+STANDARD 1926.28 - PERSONAL PROTECTIVE EQUIPMENT
+
+The employer is responsible for requiring the wearing of appropriate 
+personal protective equipment in all operations where there is exposure 
+to hazardous conditions.
+
+CONSTRUCTION SITE VIOLATIONS - MOST COMMON:
+1. No hard hat: $15,625 fine per worker
+2. No safety vest in traffic areas: $15,625 fine
+3. No fall protection: $15,625 to $156,259
+4. No eye protection during grinding: $15,625
+
+SEVERITY CLASSIFICATION:
+- Critical: Worker in immediate danger, stop work order issued
+- High: Clear PPE violation visible, immediate correction required
+- Medium: PPE present but worn incorrectly
+- Low: Minor deviation from standards, verbal warning sufficient
+
+COMPLIANCE SCORING:
+- 90-100: Excellent - Full PPE compliance observed
+- 70-89: Good - Minor issues detected
+- 50-69: Fair - Multiple violations present
+- Below 50: Poor - Immediate intervention required

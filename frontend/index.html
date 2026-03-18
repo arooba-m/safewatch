@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeWatch v3</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0a0f1e;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border-bottom: 1px solid #f59e0b33;
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo { font-size: 24px; font-weight: 700; color: #f59e0b; }
+    .logo span { color: white; }
+    .status-badge {
+      background: #22c55e22;
+      border: 1px solid #22c55e;
+      color: #22c55e;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+
+    /* ── Layout ── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 32px 20px; }
+
+    /* ── Auth Section ── */
+    .auth-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 480px;
+      margin: 0 auto 32px;
+    }
+    .auth-card h2 { color: #f59e0b; margin-bottom: 20px; font-size: 20px; }
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; margin-bottom: 6px; color: #94a3b8; font-size: 14px; }
+    .input-group input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .input-group input:focus { border-color: #f59e0b; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #f59e0b; color: #0a0f1e; }
+    .btn-primary:hover { background: #d97706; }
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid #f59e0b;
+      color: #f59e0b;
+      margin-top: 10px;
+    }
+    .btn-secondary:hover { background: #f59e0b22; }
+    .auth-msg { margin-top: 12px; font-size: 14px; text-align: center; }
+
+    /* ── Main App (hidden until login) ── */
+    .app-section { display: none; }
+    .app-section.visible { display: block; }
+
+    /* ── Stats Row ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-number { font-size: 36px; font-weight: 700; color: #f59e0b; }
+    .stat-label { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+
+    /* ── Upload Section ── */
+    .upload-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+    .upload-card h2 { color: #f59e0b; margin-bottom: 20px; }
+    .upload-area {
+      border: 2px dashed #334155;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+    .upload-area:hover { border-color: #f59e0b; background: #f59e0b0a; }
+    .upload-area input { display: none; }
+    .upload-icon { font-size: 48px; margin-bottom: 12px; }
+    .upload-text { color: #94a3b8; font-size: 14px; }
+    .file-name { color: #f59e0b; margin-top: 8px; font-size: 14px; }
+    .analyze-btn {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #0a0f1e;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+    }
+    .analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px #f59e0b44; }
+    .analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Loading ── */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 32px;
+      color: #94a3b8;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #334155;
+      border-top-color: #f59e0b;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ── */
+    .results-card {
+      display: none;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 32px;
+      margin-bottom: 32px;
+    }
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .compliance-badge {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .compliant { background: #22c55e22; border: 1px solid #22c55e; color: #22c55e; }
+    .non-compliant { background: #ef444422; border: 1px solid #ef4444; color: #ef4444; }
+    .needs-review { background: #f59e0b22; border: 1px solid #f59e0b; color: #f59e0b; }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 768px) { .results-grid { grid-template-columns: 1fr; } }
+
+    .result-section h3 {
+      color: #f59e0b;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .detection-item {
+      background: #0f172a;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    .confidence-bar {
+      height: 4px;
+      background: #334155;
+      border-radius: 2px;
+      margin-top: 6px;
+    }
+    .confidence-fill {
+      height: 100%;
+      background: #f59e0b;
+      border-radius: 2px;
+      transition: width 0.5s;
+    }
+    .violation-item {
+      background: #ef444422;
+      border: 1px solid #ef444444;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #fca5a5;
+    }
+    .action-item {
+      background: #0f172a;
+      border-left: 3px solid #f59e0b;
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #cbd5e1;
+      border-radius: 0 8px 8px 0;
+    }
+    .score-circle {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 700;
+      border: 3px solid #f59e0b;
+      color: #f59e0b;
+      margin: 0 auto 8px;
+    }
+    .annotated-img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      margin-top: 16px;
+    }
+    .osha-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 12px;
+      color: #94a3b8;
+      line-height: 1.6;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    /* ── Charts ── */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+    .chart-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .chart-card h3 { color: #f59e0b; margin-bottom: 16px; font-size: 15px; }
+
+    /* ── Reports Table ── */
+    .reports-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    .reports-card h2 { color: #f59e0b; margin-bottom: 20px; }
+    .reports-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .reports-table th {
+      background: #0f172a;
+      padding: 12px;
+      text-align: left;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .reports-table td { padding: 12px; border-bottom: 1px solid #334155; }
+    .reports-table tr:hover td { background: #ffffff05; }
+    .badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-green { background: #22c55e22; color: #22c55e; border: 1px solid #22c55e44; }
+    .badge-red { background: #ef444422; color: #ef4444; border: 1px solid #ef444444; }
+    .badge-yellow { background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b44; }
+
+    .logout-btn {
+      background: transparent;
+      border: 1px solid #ef4444;
+      color: #ef4444;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .logout-btn:hover { background: #ef444422; }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">🚧 Safe<span>Watch</span> <small style="font-size:12px;color:#64748b;">v3</small></div>
+  <div id="headerRight">
+    <span class="status-badge">⚡ AI System Online</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- AUTH SECTION -->
+  <div id="authSection">
+    <div class="auth-card">
+      <h2>🔐 Login to SafeWatch</h2>
+      <div class="input-group">
+        <label>Username</label>
+        <input type="text" id="loginUser" placeholder="Enter username">
+      </div>
+      <div class="input-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="Enter password">
+      </div>
+      <button class="btn btn-primary" onclick="login()">Login</button>
+      <button class="btn btn-secondary" onclick="register()">Create Account</button>
+      <div class="auth-msg" id="authMsg"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="appSection" class="app-section">
+
+    <!-- Stats Row -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-number" id="statTotal">-</div>
+        <div class="stat-label">Total Analyses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statCompliant" style="color:#22c55e">-</div>
+        <div class="stat-label">Compliant</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statViolations" style="color:#ef4444">-</div>
+        <div class="stat-label">Violations</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statRate">-</div>
+        <div class="stat-label">Compliance Rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="statScore">-</div>
+        <div class="stat-label">Avg Compliance Score</div>
+      </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="upload-card">
+      <div class="section-header">
+        <h2>📸 Analyze Safety Compliance</h2>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+      <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept="image/*" onchange="fileSelected(this)">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">Click to upload workplace image</div>
+        <div class="upload-text">Supports: JPG, PNG</div>
+        <div class="file-name" id="fileName"></div>
+      </div>
+      <button class="analyze-btn" id="analyzeBtn" onclick="analyze()" disabled>
+        🔍 Analyze Safety Compliance
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div>Running AI Safety Analysis...</div>
+      <div style="font-size:12px;color:#64748b;margin-top:8px;">
+        YOLOv8 → RAG → Multi-Agent Pipeline
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-card" id="resultsCard">
+      <div class="results-header">
+        <h2>Analysis Results</h2>
+        <div id="complianceBadge" class="compliance-badge">-</div>
+      </div>
+
+      <div class="results-grid">
+        <!-- Left: Detections -->
+        <div class="result-section">
+          <h3>🎯 Detections</h3>
+          <div id="detectionsList"></div>
+
+          <h3 style="margin-top:16px">⚠️ Violations</h3>
+          <div id="violationsList"></div>
+
+          <h3 style="margin-top:16px">📋 OSHA Context (RAG)</h3>
+          <div class="osha-box" id="oshaContext"></div>
+        </div>
+
+        <!-- Right: AI Analysis -->
+        <div class="result-section">
+          <h3>🤖 AI Analysis</h3>
+          <div style="text-align:center;margin-bottom:16px">
+            <div class="score-circle" id="scoreCircle">-</div>
+            <div style="color:#94a3b8;font-size:13px">Compliance Score</div>
+          </div>
+
+          <div class="detection-item">
+            <span>Severity</span>
+            <span id="severityBadge" style="font-weight:700">-</span>
+          </div>
+          <div class="detection-item">
+            <span>Helmets Detected</span>
+            <span id="helmetCount" style="color:#22c55e;font-weight:700">-</span>
+          </div>
+          <div class="detection-item">
+            <span>No Helmet</span>
+            <span id="headCount" style="color:#ef4444;font-weight:700">-</span>
+          </div>
+          <div class="detection-item">
+            <span>Processing Time</span>
+            <span id="procTime" style="color:#94a3b8">-</span>
+          </div>
+
+          <h3 style="margin-top:16px">⚡ Immediate Actions</h3>
+          <div id="actionsList"></div>
+        </div>
+      </div>
+
+      <!-- Vision Summary -->
+      <div style="margin-bottom:16px">
+        <h3 style="color:#f59e0b;font-size:14px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+          👁️ AI Vision Summary
+        </h3>
+        <div class="osha-box" id="visionSummary" style="max-height:80px"></div>
+      </div>
+
+      <!-- Annotated Image -->
+      <h3 style="color:#f59e0b;font-size:14px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">
+        🖼️ Annotated Image
+      </h3>
+      <img id="annotatedImg" class="annotated-img" src="" alt="Annotated Result">
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3>📊 Compliance Overview</h3>
+        <canvas id="complianceChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>📈 Recent Compliance Scores</h3>
+        <canvas id="scoreChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="reports-card">
+      <h2>📋 Recent Reports</h2>
+      <div style="overflow-x:auto">
+        <table class="reports-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Time</th>
+              <th>File</th>
+              <th>Status</th>
+              <th>Score</th>
+              <th>Severity</th>
+              <th>Detections</th>
+            </tr>
+          </thead>
+          <tbody id="reportsTableBody">
+            <tr><td colspan="7" style="text-align:center;color:#64748b">No reports yet</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API = "http://127.0.0.1:8000"
+  let token = localStorage.getItem("safewatch_token") || ""
+  let complianceChart, scoreChart
+
+  // ── On page load ──────────────────────────────────────
+  window.onload = () => {
+    if (token) showApp()
+    initCharts()
+  }
+
+  // ── Auth ──────────────────────────────────────────────
+  async function login() {
+    const username = document.getElementById("loginUser").value
+    const password = document.getElementById("loginPass").value
+    if (!username || !password) {
+      showAuthMsg("Please enter username and password", "red")
+      return
+    }
+    try {
+      const form = new FormData()
+      form.append("username", username)
+      form.append("password", password)
+      const res = await fetch(`${API}/token`, { method: "POST", body: form })
+      const data = await res.json()
+      if (res.ok) {
+        token = data.access_token
+        localStorage.setItem("safewatch_token", token)
+        showApp()
+      } else {
+        showAuthMsg(data.detail || "Login failed", "red")
+      }
+    } catch (e) {
+      showAuthMsg("Cannot connect to server. Is it running?", "red")
+    }
+  }
+
+  async function register() {
+    const username = document.getElementById("loginUser").value
+    const password = document.getElementById("loginPass").value
+    if (!username || !password) {
+      showAuthMsg("Please enter username and password", "red")
+      return
+    }
+    try {
+      const res = await fetch(
+        `${API}/register?username=${username}&password=${password}`,
+        { method: "POST" }
+      )
+      const data = await res.json()
+      if (res.ok) {
+        showAuthMsg("Account created! Now login.", "green")
+      } else {
+        showAuthMsg(data.detail || "Registration failed", "red")
+      }
+    } catch (e) {
+      showAuthMsg("Cannot connect to server", "red")
+    }
+  }
+
+  function logout() {
+    token = ""
+    localStorage.removeItem("safewatch_token")
+    document.getElementById("authSection").style.display = "block"
+    document.getElementById("appSection").classList.remove("visible")
+  }
+
+  function showAuthMsg(msg, color) {
+    const el = document.getElementById("authMsg")
+    el.textContent = msg
+    el.style.color = color === "red" ? "#ef4444" : "#22c55e"
+  }
+
+  function showApp() {
+    document.getElementById("authSection").style.display = "none"
+    document.getElementById("appSection").classList.add("visible")
+    loadStats()
+    loadReports()
+  }
+
+  // ── File Selection ────────────────────────────────────
+  function fileSelected(input) {
+    const file = input.files[0]
+    if (file) {
+      document.getElementById("fileName").textContent = "📎 " + file.name
+      document.getElementById("analyzeBtn").disabled = false
+    }
+  }
+
+  // ── Analyze ───────────────────────────────────────────
+  async function analyze() {
+    const file = document.getElementById("fileInput").files[0]
+    if (!file) return
+
+    document.getElementById("loading").style.display = "block"
+    document.getElementById("resultsCard").style.display = "none"
+    document.getElementById("analyzeBtn").disabled = true
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const res = await fetch(`${API}/analyze`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${token}` },
+        body: formData
+      })
+
+      if (res.status === 401) {
+        logout()
+        return
+      }
+
+      const data = await res.json()
+      displayResults(data)
+      loadStats()
+      loadReports()
+
+    } catch (e) {
+      alert("Analysis failed: " + e.message)
+    } finally {
+      document.getElementById("loading").style.display = "none"
+      document.getElementById("analyzeBtn").disabled = false
+    }
+  }
+
+  // ── Display Results ───────────────────────────────────
+  function displayResults(data) {
+    const card = document.getElementById("resultsCard")
+    card.style.display = "block"
+
+    const det = data.detection
+    const ai = data.ai_analysis
+
+    // Compliance badge
+    const badge = document.getElementById("complianceBadge")
+    badge.textContent = det.compliance_status
+    badge.className = "compliance-badge"
+    if (det.compliance_status.includes("COMPLIANT") && !det.compliance_status.includes("NON")) {
+      badge.classList.add("compliant")
+    } else if (det.compliance_status.includes("NON")) {
+      badge.classList.add("non-compliant")
+    } else {
+      badge.classList.add("needs-review")
+    }
+
+    // Detections list
+    const detList = document.getElementById("detectionsList")
+    detList.innerHTML = det.detections.map(d => `
+      <div class="detection-item">
+        <div>
+          <div>${d.label}</div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" style="width:${d.confidence*100}%"></div>
+          </div>
+        </div>
+        <span style="color:#f59e0b">${(d.confidence*100).toFixed(0)}%</span>
+      </div>
+    `).join("") || "<div style='color:#64748b;font-size:13px'>No detections</div>"
+
+    // Violations
+    const vList = document.getElementById("violationsList")
+    vList.innerHTML = det.violations.length
+      ? det.violations.map(v => `<div class="violation-item">⚠️ ${v}</div>`).join("")
+      : "<div style='color:#22c55e;font-size:13px'>✅ No violations found</div>"
+
+    // OSHA context
+    document.getElementById("oshaContext").textContent =
+      ai.osha_context || "No OSHA context retrieved"
+
+    // Score
+    document.getElementById("scoreCircle").textContent =
+      ai.compliance_score || "-"
+
+    // Severity color
+    const sev = ai.severity || "UNKNOWN"
+    const sevEl = document.getElementById("severityBadge")
+    sevEl.textContent = sev
+    sevEl.style.color = sev === "CRITICAL" ? "#ef4444"
+      : sev === "HIGH" ? "#f97316"
+      : sev === "MEDIUM" ? "#f59e0b"
+      : "#22c55e"
+
+    // Counts
+    document.getElementById("helmetCount").textContent = det.helmet_count
+    document.getElementById("headCount").textContent = det.head_count
+    document.getElementById("procTime").textContent =
+      `${(data.processing_time_ms/1000).toFixed(1)}s`
+
+    // Actions
+    const actions = ai.immediate_actions || []
+    document.getElementById("actionsList").innerHTML = actions.length
+      ? actions.map(a => `<div class="action-item">${a}</div>`).join("")
+      : "<div style='color:#64748b;font-size:13px'>No actions recommended</div>"
+
+    // Vision summary
+    document.getElementById("visionSummary").textContent =
+      ai.vision_summary || ""
+
+    // Annotated image
+    document.getElementById("annotatedImg").src =
+      "data:image/jpeg;base64," + data.annotated_image
+
+    card.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // ── Load Stats ────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res = await fetch(`${API}/stats`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      if (!res.ok) return
+      const data = await res.json()
+
+      document.getElementById("statTotal").textContent =
+        data.total_analyses
+      document.getElementById("statCompliant").textContent =
+        data.compliant
+      document.getElementById("statViolations").textContent =
+        data.violations
+      document.getElementById("statRate").textContent =
+        data.compliance_rate
+      document.getElementById("statScore").textContent =
+        data.avg_compliance_score
+
+      updateComplianceChart(data.compliant, data.violations)
+    } catch (e) {}
+  }
+
+  // ── Load Reports ──────────────────────────────────────
+  async function loadReports() {
+    try {
+      const res = await fetch(`${API}/reports`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      if (!res.ok) return
+      const reports = await res.json()
+
+      const tbody = document.getElementById("reportsTableBody")
+      if (!reports.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#64748b">No reports yet</td></tr>`
+        return
+      }
+
+      tbody.innerHTML = reports.slice(0, 10).map(r => {
+        const isCompliant = r.compliance_status &&
+          r.compliance_status.includes("COMPLIANT") &&
+          !r.compliance_status.includes("NON")
+        const badgeClass = isCompliant ? "badge-green" : "badge-red"
+
+        return `
+          <tr>
+            <td style="color:#64748b">#${r.id}</td>
+            <td style="color:#94a3b8">${r.timestamp}</td>
+            <td>${r.filename || "-"}</td>
+            <td><span class="badge ${badgeClass}">
+              ${r.compliance_status || "-"}
+            </span></td>
+            <td style="color:#f59e0b">${r.compliance_score || "-"}</td>
+            <td>${r.severity || "-"}</td>
+            <td>${r.detections_count || 0}</td>
+          </tr>
+        `
+      }).join("")
+
+      updateScoreChart(reports.slice(0, 7).reverse())
+    } catch (e) {}
+  }
+
+  // ── Charts ────────────────────────────────────────────
+  function initCharts() {
+    const ctx1 = document.getElementById("complianceChart").getContext("2d")
+    complianceChart = new Chart(ctx1, {
+      type: "doughnut",
+      data: {
+        labels: ["Compliant", "Violations"],
+        datasets: [{
+          data: [0, 0],
+          backgroundColor: ["#22c55e", "#ef4444"],
+          borderColor: ["#22c55e44", "#ef444444"],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: "#94a3b8" } }
+        }
+      }
+    })
+
+    const ctx2 = document.getElementById("scoreChart").getContext("2d")
+    scoreChart = new Chart(ctx2, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [{
+          label: "Compliance Score",
+          data: [],
+          borderColor: "#f59e0b",
+          backgroundColor: "#f59e0b22",
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            min: 0, max: 100,
+            ticks: { color: "#94a3b8" },
+            grid: { color: "#334155" }
+          },
+          x: {
+            ticks: { color: "#94a3b8" },
+            grid: { color: "#334155" }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: "#94a3b8" } }
+        }
+      }
+    })
+  }
+
+  function updateComplianceChart(compliant, violations) {
+    if (complianceChart) {
+      complianceChart.data.datasets[0].data = [compliant, violations]
+      complianceChart.update()
+    }
+  }
+
+  function updateScoreChart(reports) {
+    if (scoreChart && reports.length) {
+      scoreChart.data.labels = reports.map(r =>
+        r.timestamp ? r.timestamp.split(" ")[1] : ""
+      )
+      scoreChart.data.datasets[0].data = reports.map(r =>
+        r.compliance_score || 0
+      )
+      scoreChart.update()
+    }
+  }
+</script>
+</body>
+</html>
