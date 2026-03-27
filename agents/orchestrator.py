@@ -42,10 +42,14 @@ def vision_analysis_node(state: SafetyState) -> SafetyState:
     """
     Step 2: Analyze what YOLO detected
     """
-    from langchain_ollama import OllamaLLM
+    from langchain_groq import ChatGroq
     import os
-
-    llm = OllamaLLM(model=os.getenv("OLLAMA_MODEL", "llama3.2"))
+    llm = ChatGroq(
+    model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.1
+    )
+    
 
     detections = state.get("detections", [])
     detection_text = "\n".join([
@@ -66,17 +70,20 @@ In 2-3 sentences describe:
     print("Agent 1: Vision Analyst running...")
     summary = llm.invoke(prompt)
 
-    return {**state, "vision_summary": summary}
+    return {**state, "vision_summary": summary.content}
 
 
 def safety_inspection_node(state: SafetyState) -> SafetyState:
     """
     Step 3: Check compliance against OSHA rules
     """
-    from langchain_ollama import OllamaLLM
+    from langchain_groq import ChatGroq
     import os
-
-    llm = OllamaLLM(model=os.getenv("OLLAMA_MODEL", "llama3.2"))
+    llm = ChatGroq(
+    model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.1
+    )
     prompt = f"""You are a certified OSHA safety inspector.
 
 Vision Analysis:
@@ -97,11 +104,12 @@ Respond in JSON only:
 }}"""
 
     print("Agent 2: Safety Inspector running...")
-    result_text = llm.invoke(prompt)
-
-    # Extract JSON safely
+    
+    result_text = llm.invoke(prompt).content
     try:
         match = re.search(r'\{.*\}', result_text, re.DOTALL)
+    # Extract JSON safely
+    
         result = json.loads(match.group()) if match else {}
     except Exception:
         result = {
@@ -118,10 +126,13 @@ def report_writing_node(state: SafetyState) -> SafetyState:
     """
     Step 4: Write the formal safety report
     """
-    from langchain_ollama import OllamaLLM
+    from langchain_groq import ChatGroq
     import os
-
-    llm = OllamaLLM(model=os.getenv("OLLAMA_MODEL", "llama3.2"))
+    llm = ChatGroq(
+    model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.1
+    )
 
     inspection = state.get("inspection_result", {})
 
@@ -141,7 +152,7 @@ Write a professional safety report as JSON only:
 Output ONLY valid JSON."""
 
     print("Agent 3: Report Writer running...")
-    report_text = llm.invoke(prompt)
+    report_text = llm.invoke(prompt).content
 
     try:
         match = re.search(r'\{.*\}', report_text, re.DOTALL)
@@ -164,11 +175,13 @@ def action_recommendation_node(state: SafetyState) -> SafetyState:
     """
     Step 5: Generate corrective actions
     """
-    from langchain_ollama import OllamaLLM
+    from langchain_groq import ChatGroq
     import os
-
-    llm = OllamaLLM(model=os.getenv("OLLAMA_MODEL", "llama3.2"))
-
+    llm = ChatGroq(
+    model=os.getenv("GROQ_MODEL", "llama-3.1-8b-instant"),
+    api_key=os.getenv("GROQ_API_KEY"),
+    temperature=0.1
+    )
     prompt = f"""You are a safety compliance advisor.
 
 Based on:
@@ -179,7 +192,7 @@ Give exactly 3 immediate actions (do today) as a simple list.
 Be specific and practical. No JSON needed, just a numbered list."""
 
     print("Agent 4: Action Recommender running...")
-    actions_text = llm.invoke(prompt)
+    actions_text = llm.invoke(prompt).content
     actions = [
         line.strip()
         for line in actions_text.split('\n')
