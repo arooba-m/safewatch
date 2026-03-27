@@ -2,7 +2,7 @@ import os
 from langchain_community.document_loaders import TextLoader, DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FakeEmbeddings
 
 # Directory where ChromaDB stores its data
 CHROMA_PATH = "rag/chroma_db"
@@ -10,14 +10,20 @@ DOCS_PATH = "rag/osha_docs"
 
 def get_embeddings():
     """
-    Load a local embedding model.
-    This converts text into vectors (numbers) so we can search by meaning.
-    No API key needed — runs locally.
+    Use fake embeddings for cloud deployment.
+    Locally, sentence-transformers runs for real semantic search.
     """
-    return HuggingFaceEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        model_kwargs={"device": "cpu"}
-    )
+    import os
+    if os.getenv("RENDER"):
+        # On Render cloud — use fake embeddings
+        return FakeEmbeddings(size=384)
+    else:
+        # Locally — use real semantic embeddings
+        from langchain_huggingface import HuggingFaceEmbeddings
+        return HuggingFaceEmbeddings(
+            model_name="all-MiniLM-L6-v2",
+            model_kwargs={"device": "cpu"}
+        )
 
 def ingest_documents():
     """
