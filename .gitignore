@@ -1,9 +1,13 @@
 .env
 venv/
 __pycache__/
+**/__pycache__/
 *.pyc
 *.db
 .cache/
 mlflow_tracking/mlruns/
 mlflow_tracking/mlflow.db
 rag/chroma_db/
+download/
+*.lock
+*.metadata
