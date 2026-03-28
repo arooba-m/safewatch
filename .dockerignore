@@ -2,7 +2,14 @@ venv/
 __pycache__/
 *.pyc
 .env
-mlflow_tracking/mlruns/
+mlflow_tracking/
 rag/chroma_db/
 *.db
 .cache/
+yolov8n.pt
+*.jpg
+*.png
+test_agents.py
+test_core.py
+test_rag.py
+mlruns/
