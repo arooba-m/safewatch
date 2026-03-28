@@ -1,6 +1,7 @@
 import os
-os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "0"
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
+os.environ["DISPLAY"] = ""
+os.environ["MPLBACKEND"] = "Agg"
 from ultralytics import YOLO
 import cv2
 import numpy as np
