@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:2.1.0-cuda11.8-cudnn8-runtime
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -9,15 +9,13 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxext6 \
     libxcb1 \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir \
-    numpy==1.24.4 \
-    opencv-python-headless==4.8.1.78 \
-    ultralytics==8.0.196 \
-    transformers==4.35.0 \
-    sentence-transformers==2.2.2
+RUN pip install --no-cache-dir numpy==1.24.4
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu \
+    torch==2.1.0+cpu torchvision==0.16.0+cpu
+RUN pip install --no-cache-dir opencv-python-headless==4.8.1.78 ultralytics==8.0.196
+RUN pip install --no-cache-dir transformers==4.35.0 sentence-transformers==2.2.2
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
