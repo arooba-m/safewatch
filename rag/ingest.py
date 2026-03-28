@@ -9,21 +9,11 @@ CHROMA_PATH = "rag/chroma_db"
 DOCS_PATH = "rag/osha_docs"
 
 def get_embeddings():
-    """
-    Use fake embeddings for cloud deployment.
-    Locally, sentence-transformers runs for real semantic search.
-    """
-    import os
-    if os.getenv("RENDER"):
-        # On Render cloud — use fake embeddings
-        return FakeEmbeddings(size=384)
-    else:
-        # Locally — use real semantic embeddings
-        from langchain_huggingface import HuggingFaceEmbeddings
-        return HuggingFaceEmbeddings(
-            model_name="all-MiniLM-L6-v2",
-            model_kwargs={"device": "cpu"}
-        )
+    from langchain_huggingface import HuggingFaceEmbeddings
+    return HuggingFaceEmbeddings(
+        model_name="all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"}
+    )
 
 def ingest_documents():
     """
