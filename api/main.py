@@ -14,7 +14,14 @@ from starlette.requests import Request
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from mlflow_tracking.tracking import log_analysis
+try:
+    from mlflow_tracking.tracking import log_analysis
+    MLFLOW_ENABLED = True
+except Exception:
+    MLFLOW_ENABLED = False
+
+    def log_analysis(*args, **kwargs):
+        pass
 
 
 load_dotenv()
