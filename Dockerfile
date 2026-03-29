@@ -1,20 +1,27 @@
-# Dockerfile snippet
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    libgl1 libglib2.0-0 libsm6 libxrender1 libxext6 libxcb1 \
+    libgl1 \
+    libglib2.0-0 \
+    libsm6 \
+    libxrender1 \
+    libxext6 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first (caching)
-COPY requirements.txt .
+RUN pip install --no-cache-dir numpy==1.24.4
+RUN pip install --no-cache-dir \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    torch==2.1.0+cpu torchvision==0.16.0+cpu
+RUN pip install --no-cache-dir opencv-python-headless==4.8.1.78
+RUN pip install --no-cache-dir ultralytics==8.0.196
+RUN pip install --no-cache-dir transformers==4.35.0 sentence-transformers==2.2.2
 
-# Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the app
 COPY . .
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080"]
+EXPOSE 8000
