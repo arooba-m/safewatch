@@ -152,96 +152,102 @@ async def analyze(
     file: UploadFile = File(...),
     current_user: str = Depends(get_current_user)
 ):
-    start_time = time.time()
-    logger.info(f"📸 Analysis request: {file.filename} by {current_user}")
-
-    contents = await file.read()
-
-    logger.info("Running YOLOv8 detection...")
-    detection_result = analyze_image(contents)
-
-    logger.info("Running agent pipeline...")
-    agent_result = run_safety_analysis(
-        detections=detection_result["detections"],
-        violations=detection_result["violations"],
-        compliance_status=detection_result["compliance_status"]
-    )
-
-    confidences = [d["confidence"] for d in detection_result["detections"]]
-    avg_confidence = round(sum(confidences) / len(confidences), 2) if confidences else 0
-
-    compliance_score = agent_result.get("final_report", {}).get("compliance_score", 0)
-    severity = agent_result.get("inspection_result", {}).get("severity", "UNKNOWN")
-
-    report_id = save_report(
-        username=current_user,
-        filename=file.filename,
-        status=detection_result["compliance_status"],
-        violations=detection_result["violations"],
-        detections_count=len(detection_result["detections"]),
-        confidence_avg=avg_confidence,
-        severity=severity,
-        compliance_score=compliance_score,
-        llm_report=agent_result.get("final_report", {})
-    )
-
-    if detection_result.get("tracked_workers"):
-        save_worker_tracks(detection_result["tracked_workers"], report_id)
-
-    if detection_result["violations"]:
-        send_violation_alert(
-            violations=detection_result["violations"],
-            image_bytes=detection_result["annotated_image"],
-            username=current_user,
-            compliance_score=compliance_score
-        )
-
-    duration = round((time.time() - start_time) * 1000, 2)
-
     try:
-        log_analysis(
-            filename=file.filename,
-            username=current_user,
-            detections_count=len(detection_result["detections"]),
-            helmet_count=detection_result.get("helmet_count", 0),
-            head_count=detection_result.get("head_count", 0),
-            avg_confidence=avg_confidence,
-            compliance_score=compliance_score,
-            severity=severity,
-            processing_time_ms=duration,
+        start_time = time.time()
+        logger.info(f"📸 Analysis request: {file.filename} by {current_user}")
+
+        contents = await file.read()
+
+        logger.info("Running YOLOv8 detection...")
+        detection_result = analyze_image(contents)
+
+        logger.info("Running agent pipeline...")
+        agent_result = run_safety_analysis(
+            detections=detection_result["detections"],
+            violations=detection_result["violations"],
             compliance_status=detection_result["compliance_status"]
         )
+
+        confidences = [d["confidence"] for d in detection_result["detections"]]
+        avg_confidence = round(sum(confidences) / len(confidences), 2) if confidences else 0
+
+        compliance_score = agent_result.get("final_report", {}).get("compliance_score", 0)
+        severity = agent_result.get("inspection_result", {}).get("severity", "UNKNOWN")
+
+        report_id = save_report(
+            username=current_user,
+            filename=file.filename,
+            status=detection_result["compliance_status"],
+            violations=detection_result["violations"],
+            detections_count=len(detection_result["detections"]),
+            confidence_avg=avg_confidence,
+            severity=severity,
+            compliance_score=compliance_score,
+            llm_report=agent_result.get("final_report", {})
+        )
+
+        if detection_result.get("tracked_workers"):
+            save_worker_tracks(detection_result["tracked_workers"], report_id)
+
+        if detection_result["violations"]:
+            send_violation_alert(
+                violations=detection_result["violations"],
+                image_bytes=detection_result["annotated_image"],
+                username=current_user,
+                compliance_score=compliance_score
+            )
+
+        duration = round((time.time() - start_time) * 1000, 2)
+
+        try:
+            log_analysis(
+                filename=file.filename,
+                username=current_user,
+                detections_count=len(detection_result["detections"]),
+                helmet_count=detection_result.get("helmet_count", 0),
+                head_count=detection_result.get("head_count", 0),
+                avg_confidence=avg_confidence,
+                compliance_score=compliance_score,
+                severity=severity,
+                processing_time_ms=duration,
+                compliance_status=detection_result["compliance_status"]
+            )
+        except Exception as e:
+            logger.warning(f"MLflow logging failed: {e}")
+
+        logger.info(f"Analysis complete in {duration}ms")
+
+        img_base64 = base64.b64encode(detection_result["annotated_image"]).decode("utf-8")
+
+        return JSONResponse({
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "filename": file.filename,
+            "analyzed_by": current_user,
+            "processing_time_ms": duration,
+            "detection": {
+                "detections": detection_result["detections"],
+                "detections_count": len(detection_result["detections"]),
+                "helmet_count": detection_result.get("helmet_count", 0),
+                "head_count": detection_result.get("head_count", 0),
+                "avg_confidence": avg_confidence,
+                "compliance_status": detection_result["compliance_status"],
+                "violations": detection_result["violations"]
+            },
+            "ai_analysis": {
+                "severity": severity,
+                "compliance_score": compliance_score,
+                "vision_summary": agent_result.get("vision_summary", ""),
+                "final_report": agent_result.get("final_report", {}),
+                "immediate_actions": agent_result.get("actions", []),
+                "osha_context": agent_result.get("osha_context_used", "")
+            },
+            "annotated_image": img_base64
+        })
+
     except Exception as e:
-        logger.warning(f"MLflow logging failed: {e}")
+        logger.error(f"Analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    logger.info(f"Analysis complete in {duration}ms")
-
-    img_base64 = base64.b64encode(detection_result["annotated_image"]).decode("utf-8")
-
-    return JSONResponse({
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "filename": file.filename,
-        "analyzed_by": current_user,
-        "processing_time_ms": duration,
-        "detection": {
-            "detections": detection_result["detections"],
-            "detections_count": len(detection_result["detections"]),
-            "helmet_count": detection_result.get("helmet_count", 0),
-            "head_count": detection_result.get("head_count", 0),
-            "avg_confidence": avg_confidence,
-            "compliance_status": detection_result["compliance_status"],
-            "violations": detection_result["violations"]
-        },
-        "ai_analysis": {
-            "severity": severity,
-            "compliance_score": compliance_score,
-            "vision_summary": agent_result.get("vision_summary", ""),
-            "final_report": agent_result.get("final_report", {}),
-            "immediate_actions": agent_result.get("actions", []),
-            "osha_context": agent_result.get("osha_context_used", "")
-        },
-        "annotated_image": img_base64
-    })
 
 # ══════════════════════════════════════════════════════════
 # VIDEO ANALYSIS
@@ -254,25 +260,31 @@ async def analyze_video(
     file: UploadFile = File(...),
     current_user: str = Depends(get_current_user)
 ):
-    """Upload video → frame-by-frame PPE analysis"""
-    from core.video_processor import process_video
+    try:
+        """Upload video → frame-by-frame PPE analysis"""
+        from core.video_processor import process_video
 
-    contents = await file.read()
+        contents = await file.read()
 
-    logger.info(f"🎥 Video analysis request: {file.filename} by {current_user}")
+        logger.info(f"🎥 Video analysis request: {file.filename} by {current_user}")
 
-    result = process_video(contents, frame_skip=15)
+        result = process_video(contents, frame_skip=15)
 
-    return JSONResponse({
-        "filename": file.filename,
-        "analyzed_by": current_user,
-        "video_stats": result["video_stats"],
-        "compliance_rate": result["compliance_rate"],
-        "summary_status": result["summary_status"],
-        "total_violations_found": result["total_violations_found"],
-        "unique_violations": result["unique_violations"],
-        "violation_frames": result["violation_frames"]
-    })
+        return JSONResponse({
+            "filename": file.filename,
+            "analyzed_by": current_user,
+            "video_stats": result["video_stats"],
+            "compliance_rate": result["compliance_rate"],
+            "summary_status": result["summary_status"],
+            "total_violations_found": result["total_violations_found"],
+            "unique_violations": result["unique_violations"],
+            "violation_frames": result["violation_frames"]
+        })
+
+    except Exception as e:
+        logger.error(f"Video analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ══════════════════════════════════════════════════════════
 # DASHBOARD ROUTES
@@ -293,6 +305,7 @@ def get_statistics(current_user: str = Depends(get_current_user)):
         "avg_confidence": stats["avg_confidence"],
         "avg_compliance_score": stats["avg_compliance_score"]
     }
+
 
 # ══════════════════════════════════════════════════════════
 # HEALTH CHECK
