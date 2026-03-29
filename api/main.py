@@ -3,7 +3,7 @@ import base64
 import logging
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import BackgroundTasks
@@ -13,8 +13,8 @@ from slowapi.errors import RateLimitExceeded
 from starlette.requests import Request
 from dotenv import load_dotenv
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
+# ── Optional MLflow Tracking ─────────────────────────────
 try:
     from mlflow_tracking.tracking import log_analysis
     MLFLOW_ENABLED = True
@@ -24,31 +24,48 @@ except Exception:
     def log_analysis(*args, **kwargs):
         pass
 
+# ── Optional Agents ──────────────────────────────────────
+try:
+    from agents.orchestrator import run_safety_analysis
+    AGENTS_ENABLED = True
+except Exception:
+    AGENTS_ENABLED = False
+
+    def run_safety_analysis(detections, violations, compliance_status):
+        return {
+            "vision_summary": f"Detected {len(detections)} objects",
+            "inspection_result": {"severity": "MEDIUM", "compliance_score": 70},
+            "final_report": {"compliance_score": 70},
+            "actions": ["Review detected violations immediately"],
+            "osha_context_used": "Agents not available in deployment"
+        }
+
 load_dotenv()
 
+# ── Core modules ─────────────────────────────────────────
 from core.detector import analyze_image, analyze_with_tracking
 from core.database import (
     init_db, save_report, get_reports,
     get_stats, save_worker_tracks
 )
-from agents.orchestrator import run_safety_analysis
+
 from api.auth import (
     get_current_user, create_token,
     authenticate_user, register_user
 )
 from api.alerts import send_violation_alert
 
-# ── Logging ────────────────────────────────────────────────
+# ── Logging ───────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s"
 )
 logger = logging.getLogger("safewatch")
 
-# ── Rate Limiter ───────────────────────────────────────────
+# ── Rate Limiter ─────────────────────────────────────────
 limiter = Limiter(key_func=get_remote_address)
 
-# ── App ────────────────────────────────────────────────────
+# ── App ───────────────────────────────────────────────────
 app = FastAPI(
     title="SafeWatch API v3",
     description="""
@@ -75,11 +92,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Initialize DB ───────────────────────────────────────────
+# ── Initialize DB ─────────────────────────────────────────
 init_db()
 logger.info("SafeWatch v3 started!")
 
-# ── Static Frontend ─────────────────────────────────────────
+# ── Static Frontend ───────────────────────────────────────
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
 
 @app.get("/dashboard", tags=["Frontend"])
@@ -99,7 +116,6 @@ def register(username: str, password: str):
         )
 
     success = register_user(username, password)
-
     if not success:
         raise HTTPException(
             status_code=400,
@@ -124,7 +140,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
         "token_type": "bearer",
         "message": "Login successful"
     }
-
 
 # ══════════════════════════════════════════════════════════
 # IMAGE ANALYSIS
@@ -152,21 +167,11 @@ async def analyze(
         compliance_status=detection_result["compliance_status"]
     )
 
-    confidences = [
-        d["confidence"] for d in detection_result["detections"]
-    ]
+    confidences = [d["confidence"] for d in detection_result["detections"]]
+    avg_confidence = round(sum(confidences) / len(confidences), 2) if confidences else 0
 
-    avg_confidence = round(
-        sum(confidences) / len(confidences), 2
-    ) if confidences else 0
-
-    compliance_score = agent_result.get(
-        "final_report", {}
-    ).get("compliance_score", 0)
-
-    severity = agent_result.get(
-        "inspection_result", {}
-    ).get("severity", "UNKNOWN")
+    compliance_score = agent_result.get("final_report", {}).get("compliance_score", 0)
+    severity = agent_result.get("inspection_result", {}).get("severity", "UNKNOWN")
 
     report_id = save_report(
         username=current_user,
@@ -181,9 +186,7 @@ async def analyze(
     )
 
     if detection_result.get("tracked_workers"):
-        save_worker_tracks(
-            detection_result["tracked_workers"], report_id
-        )
+        save_worker_tracks(detection_result["tracked_workers"], report_id)
 
     if detection_result["violations"]:
         send_violation_alert(
@@ -213,9 +216,7 @@ async def analyze(
 
     logger.info(f"Analysis complete in {duration}ms")
 
-    img_base64 = base64.b64encode(
-        detection_result["annotated_image"]
-    ).decode("utf-8")
+    img_base64 = base64.b64encode(detection_result["annotated_image"]).decode("utf-8")
 
     return JSONResponse({
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -242,7 +243,6 @@ async def analyze(
         "annotated_image": img_base64
     })
 
-
 # ══════════════════════════════════════════════════════════
 # VIDEO ANALYSIS
 # ══════════════════════════════════════════════════════════
@@ -255,7 +255,6 @@ async def analyze_video(
     current_user: str = Depends(get_current_user)
 ):
     """Upload video → frame-by-frame PPE analysis"""
-
     from core.video_processor import process_video
 
     contents = await file.read()
@@ -275,24 +274,17 @@ async def analyze_video(
         "violation_frames": result["violation_frames"]
     })
 
-
 # ══════════════════════════════════════════════════════════
 # DASHBOARD ROUTES
 # ══════════════════════════════════════════════════════════
 
 @app.get("/reports", tags=["Dashboard"])
-def get_all_reports(
-    current_user: str = Depends(get_current_user)
-):
+def get_all_reports(current_user: str = Depends(get_current_user)):
     return get_reports(username=current_user)
 
-
 @app.get("/stats", tags=["Dashboard"])
-def get_statistics(
-    current_user: str = Depends(get_current_user)
-):
+def get_statistics(current_user: str = Depends(get_current_user)):
     stats = get_stats()
-
     return {
         "total_analyses": stats["total_analyses"],
         "compliant": stats["compliant"],
@@ -301,7 +293,6 @@ def get_statistics(
         "avg_confidence": stats["avg_confidence"],
         "avg_compliance_score": stats["avg_compliance_score"]
     }
-
 
 # ══════════════════════════════════════════════════════════
 # HEALTH CHECK

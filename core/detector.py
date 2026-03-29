@@ -24,7 +24,8 @@ def analyze_image(image_bytes: bytes) -> dict:
     nparr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    results = model(img, conf=0.5)[0]
+    img_array = np.asarray(img)
+    results = model(img_array, conf=0.5)[0]
 
 
     detections = []
@@ -85,7 +86,8 @@ def analyze_with_tracking(image_bytes: bytes) -> dict:
     nparr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-    results = model.track(img, persist=True, conf=0.5)[0]
+    img_array = np.asarray(img)
+    results = model.track(img_array, persist=True, conf=0.5)[0]
 
     detections = []
     labels_found = []
